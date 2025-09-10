@@ -14,6 +14,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from config import SPECIAL_TOKENS
 from model import LLaDAForMultiModalGeneration
+from utils.generation_utils import setup_seed
 from utils.image_utils import preprocess_image, decode_vq_to_image, calculate_vq_params, generate_crop_size_list, var_center_crop, add_break_line, encode_img_with_breaks
 from generators.image_to_image_generator import generate_i2i
 from utils.prompt_utils import generate_image_to_image_prompt, create_prompt_templates

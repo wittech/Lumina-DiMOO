@@ -57,15 +57,6 @@ def main():
         args.checkpoint, torch_dtype=torch.bfloat16, device_map="auto",
     )
     
-    # Prompts list
-    prompts = [
-        "Antarctic food web diagram",
-        "Medieval festival with humans, elves, and dwarves, depicted in vibrant cartoon style.",
-        "An ancient, mysterious stone circle at dawn, with the sun rising between two towering monoliths, photorealistic landscape",
-        "A digital painting of a nebula bursting with color and light, a vivid representation of space's beauty.",
-        "A cutting-edge research facility located on the outskirts of a major city, designed with a double-skin facade for optimal energy efficiency. The exterior is comprised of alternating panels of high-performance glass and photovoltaic cells. The entrance is marked by a massive cantilever roof covered in sedum plants, leading to an atrium with a vertical garden that spans three floors, integrating natural stone paths and water features. The labs are equipped with state-of-the-art modular systems that can be reconfigured based on current research needs, with dedicated areas for collaboration that include transparent smart screens for real-time data sharing.",
-    ]
-    
     # Load VQ-VAE
     from diffusers import VQModel
     vqvae = VQModel.from_pretrained(args.vae_ckpt, subfolder="vqvae").to(device)
