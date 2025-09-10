@@ -142,8 +142,8 @@ To support large-scale sampling/testing, we provide additional ddp sampling scri
 torchrun --nproc_per_node=8 scripts/inference_t2i_ddp.py \
     --checkpoint Alpha-VLLM/Lumina-DiMOO \
     --prompt_path /path/to/prompts.jsonl \
-    --height 512 \
-    --width 512 \
+    --height 1024 \
+    --width 1024 \
     --timesteps 64 \
     --cfg_scale 4.0 \
     --vae_ckpt Alpha-VLLM/Lumina-DiMOO \
