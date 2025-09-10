@@ -8,6 +8,7 @@ sentencepiece
 gradio==4.19.0
 packaging
 transformers==4.46.2
+diffusers==0.34.0
 pyyaml
 pathlib
 Ninja
