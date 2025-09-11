@@ -271,7 +271,7 @@ This work was also supported and implemented by [MindSpeed MM](https://gitee.com
 
 ## 🌟 Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Alpha-VLLM/DiMOO&type=Date)](https://www.star-history.com/#Alpha-VLLM/DiMOO&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=Alpha-VLLM/DiMOO&type=Date)](https://www.star-history.com/#Alpha-VLLM/Lumina-DiMOO&Date)
 
 ## 📖 BibTeX
 ```
