@@ -150,8 +150,8 @@ torchrun --nproc_per_node=8 scripts/inference_t2i_ddp.py \
     --output_dir output/results_image_to_image_ddp \
     --output_json output/results_image_to_image_ddp/results.json
 ```
-#### 3. Sampling with Max Logit-Based Cache
-Add `--use-cache` to accelerate sampling. The efficiency-quality tradeoff can be tuned by `cache_ratio`, `warmup_ratio`, and `refresh_interval`.
+#### 3. Faster Sampling with Cache
+Add `--use-cache` to accelerate sampling through max logit-based cache. The efficiency-quality tradeoff can be tuned by `cache_ratio`, `warmup_ratio`, and `refresh_interval`.
 ```
 python scripts/inference_t2i.py\
     --checkpoint Alpha-VLLM/Lumina-DiMOO \
