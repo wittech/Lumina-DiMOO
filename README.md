@@ -150,6 +150,25 @@ torchrun --nproc_per_node=8 scripts/inference_t2i_ddp.py \
     --output_dir output/results_image_to_image_ddp \
     --output_json output/results_image_to_image_ddp/results.json
 ```
+#### 3. Sampling with Max Logit-Based Cache
+Add `--use-cache` to accelerate sampling. The efficiency-quality tradeoff can be tuned by `cache_ratio`, `warmup_ratio`, and `refresh_interval`.
+```
+python scripts/inference_t2i.py\
+    --checkpoint Alpha-VLLM/Lumina-DiMOO \
+    --prompt "A striking photograph of a glass of orange juice on a wooden kitchen table, capturing a playful moment. The orange juice splashes out of the glass and forms the word \"Smile\" in a whimsical, swirling script just above the glass. The background is softly blurred, revealing a cozy, homely kitchen with warm lighting and a sense of comfort." \
+    --height 768 \
+    --width 1536 \
+    --timesteps 64 \
+    --cfg_scale 4.0 \
+    --seed 65513 \
+    --vae_ckpt Alpha-VLLM/Lumina-DiMOO \
+    --output_dir output/results_text_to_image_usecache \
+    --use-cache \
+    --cache_ratio 0.9 \
+    --warmup_ratio 0.3 \
+    --refresh_interval 5
+```
+
 ### 🌟 Image-to-Image Inference
  
 #### 1. Controllable Generation: "hed_control", "depth_control", "openpose_control", "subject_driven".

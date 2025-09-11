@@ -33,9 +33,9 @@ def main():
     parser.add_argument("--vae_ckpt", type=str, default="./vae_ckpt", help="VAE checkpoint path")
     parser.add_argument("--output_dir", type=str, default="results_text_to_image", help="Output directory")
     parser.add_argument("--use-cache", action='store_true', help="Enable caching for faster inference")
-    parser.add_argument("--cache_ratio", type=float, default=0.9)
-    parser.add_argument("--warmup_ratio", type=float, default=0.3, help="Warmup ratio for caching")
-    parser.add_argument("--refresh_interval", type=int, default=5, help="Interval for refreshing cache")
+    parser.add_argument("--cache_ratio", type=float, default=0.9, help="Ratio of reused tokens, in (0,1)")
+    parser.add_argument("--warmup_ratio", type=float, default=0.3, help="Warmup ratio for caching, in [0,1)")
+    parser.add_argument("--refresh_interval", type=int, default=5, help="Refresh all cache every `refresh_interval` steps")
     
     args = parser.parse_args()
     
