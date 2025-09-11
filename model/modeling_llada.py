@@ -408,7 +408,7 @@ class RotaryEmbedding(nn.Module):
     def apply_rotary_pos_emb(self, pos_sin: torch.Tensor, pos_cos: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         return ((t * pos_cos) + (self.rotate_half(t) * pos_sin)).to(t.dtype)
 
-    def forward(self, q: torch.Tensor, k: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, q: torch.Tensor, k: torch.Tensor, q_mask=None) -> Tuple[torch.Tensor, torch.Tensor]:
         if self.config.rope_full_precision:
             q_, k_ = q.float(), k.float()
         else:
@@ -419,11 +419,18 @@ class RotaryEmbedding(nn.Module):
             pos_sin, pos_cos = self.get_rotary_embedding(key_len, q_.device)
             pos_sin = pos_sin.type_as(q_)
             pos_cos = pos_cos.type_as(q_)
-            q_ = self.apply_rotary_pos_emb(
-                pos_sin[:, :, key_len - query_len : key_len, :],
-                pos_cos[:, :, key_len - query_len : key_len, :],
-                q_,
-            )
+            if q_mask is None:
+                q_ = self.apply_rotary_pos_emb(
+                    pos_sin[:, :, key_len - query_len : key_len, :],
+                    pos_cos[:, :, key_len - query_len : key_len, :],
+                    q_,
+                )
+            else:
+                q_ = self.apply_rotary_pos_emb(
+                    pos_sin[:, :, q_mask, :],
+                    pos_cos[:, :, q_mask, :],
+                    q_,
+                )
             k_ = self.apply_rotary_pos_emb(pos_sin, pos_cos, k_)
         return q_.type_as(q), k_.type_as(k)
 
@@ -580,6 +587,18 @@ class LLaDABlock(nn.Module):
             except ModuleNotFoundError:
                 pass
 
+        self.use_cache = False
+        self.init_cache()
+
+    def init_cache(self):
+        self.cache = {
+            'k': {}, 'v': {}, 'out': {}
+        }
+
+    def caching(self, enable: bool = True):
+        self.use_cache = enable
+        self.init_cache()
+
     def reset_parameters(self):
         if self.k_norm is not None:
             self.k_norm.reset_parameters()
@@ -666,7 +685,7 @@ class LLaDABlock(nn.Module):
         v: torch.Tensor,
         attention_bias: Optional[torch.Tensor] = None,
         layer_past: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,
-        use_cache: bool = False,
+        to_compute_mask = None,
     ) -> Tuple[torch.Tensor, Optional[Tuple[torch.Tensor, torch.Tensor]]]:
         B, T, C = q.size()  # batch size, sequence length, d_model
         dtype = k.dtype
@@ -678,23 +697,23 @@ class LLaDABlock(nn.Module):
 
         # Move head forward to be next to the batch dim.
         # shape: (B, nh, T, hs)
-        q = q.view(B, T, self.config.n_heads, C // self.config.n_heads).transpose(1, 2)
+        q = q.view(B, -1, self.config.n_heads, C // self.config.n_heads).transpose(1, 2)
         # shape: (B, n_kv_h, T, hs)
-        k = k.view(B, T, self.config.effective_n_kv_heads, C // self.config.n_heads).transpose(1, 2)
+        k = k.view(B, -1, self.config.effective_n_kv_heads, C // self.config.n_heads).transpose(1, 2)
         # shape: (B, n_kv_h, T, hs)
-        v = v.view(B, T, self.config.effective_n_kv_heads, C // self.config.n_heads).transpose(1, 2)
+        v = v.view(B, -1, self.config.effective_n_kv_heads, C // self.config.n_heads).transpose(1, 2)
 
         if layer_past is not None:
             past_key, past_value = layer_past
             k = torch.cat((past_key, k), dim=-2)
             v = torch.cat((past_value, v), dim=-2)
 
-        present = (k, v) if use_cache else None
-        query_len, key_len = q.shape[-2], k.shape[-2]  # could be different if layer_past not None
+        # present = (k, v) if use_cache else None
+        # query_len, key_len = q.shape[-2], k.shape[-2]  # could be different if layer_past not None
 
         if self.config.rope:
-            # Apply rotary embeddings.
-            q, k = self.rotary_emb(q, k)
+            to_compute_index = to_compute_mask.nonzero(as_tuple=True)[1] if self.use_cache and to_compute_mask is not None else None
+            q, k = self.rotary_emb(q, k, q_mask=to_compute_index)
 
         if attention_bias is not None:
             # Resize and cast attention bias.
@@ -703,7 +722,8 @@ class LLaDABlock(nn.Module):
             # as down-casting the attention bias to the autocast precision will result in -infs, which will
             # cause the SDP attn function to produce NaNs.
             attention_bias = self._cast_attn_bias(
-                attention_bias[:, :, key_len - query_len : key_len, :key_len], dtype
+                # attention_bias[:, :, key_len - query_len : key_len, :key_len], dtype
+                attention_bias, dtype
             )
 
         # Get the attention scores.
@@ -721,7 +741,7 @@ class LLaDABlock(nn.Module):
         att = att.transpose(1, 2).contiguous().view(B, T, C)
 
         # Apply output projection.
-        return self.attn_out(att), present
+        return self.attn_out(att), None
 
     @abstractmethod
     def forward(
@@ -889,6 +909,8 @@ class LLaDALlamaBlock(LLaDABlock):
         attention_bias: Optional[torch.Tensor] = None,
         layer_past: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,
         use_cache: bool = False,
+        cat = 'cond',
+        to_compute_mask = None,
     ) -> Tuple[torch.Tensor, Optional[Tuple[torch.Tensor, torch.Tensor]]]:
         # Get query, key, value projections.
         # shape:
@@ -897,10 +919,25 @@ class LLaDALlamaBlock(LLaDABlock):
         #                      k, v: (batch_size, seq_len, d_model // n_heads)
         #  - for group query attn q: (batch_size, seq_len, d_model)
         #                      k, v: (batch_size, seq_len, d_model // n_kv_heads)
+        B, T, D = x.shape
+
         x_normed = self.attn_norm(x)
         q = self.q_proj(x_normed)
         k = self.k_proj(x_normed)
         v = self.v_proj(x_normed)
+
+        if use_cache:
+            if cat not in self.cache['k']:
+                self.cache['k'][cat] = torch.zeros_like(x)
+                self.cache['v'][cat] = torch.zeros_like(x)
+            if to_compute_mask is not None:
+                self.cache['k'][cat][to_compute_mask] = k.view(-1, D)
+                self.cache['v'][cat][to_compute_mask] = v.view(-1, D)
+                k = self.cache['k'][cat]
+                v = self.cache['v'][cat]
+            else:
+                self.cache['k'][cat] = k
+                self.cache['v'][cat] = v
 
         # Get attention scores.
         if self._activation_checkpoint_fn is not None:
@@ -908,7 +945,8 @@ class LLaDALlamaBlock(LLaDABlock):
                 self.attention, q, k, v, attention_bias, layer_past=layer_past, use_cache=use_cache
             )
         else:
-            att, cache = self.attention(q, k, v, attention_bias, layer_past=layer_past, use_cache=use_cache)
+            att, cache = self.attention(q, k, v, attention_bias, layer_past=layer_past, 
+                                        to_compute_mask=to_compute_mask)
 
         # Add attention scores.
         # shape: (B, T, C)
@@ -1101,6 +1139,8 @@ class LLaDAModel(nn.Module):
             get_causal_attention_bias(self.__cache, config.max_sequence_length, _non_meta_init_device(config))
             self.get_alibi_attention_bias(config.max_sequence_length, _non_meta_init_device(config))
 
+        self.logit_cache = {}
+
     def set_activation_checkpointing(self, strategy: Optional[ActivationCheckpointingStrategy]):
         self.activation_checkpointing_strategy = strategy
         if self.config.block_group_size != 1:
@@ -1165,9 +1205,11 @@ class LLaDAModel(nn.Module):
         attention_mask: Optional[torch.Tensor] = None,
         attention_bias: Optional[torch.Tensor] = None,
         past_key_values: Optional[Sequence[Tuple[torch.Tensor, torch.Tensor]]] = None,
-        use_cache: bool = False,
         last_logits_only: bool = False,
         output_hidden_states: Optional[bool] = None,
+        use_cache = False,
+        to_compute_mask = None,
+        cat = '',
     ) -> LLaDAOutput:
         """
         :param input_ids: A tensor of shape `(batch_size, seq_len)`.
@@ -1199,10 +1241,13 @@ class LLaDAModel(nn.Module):
         :param last_logits_only: If `True`, only compute the logits for the last token of each sequence.
             This can speed up decoding when you only care about the next token.
         """
+        if use_cache and to_compute_mask is not None:
+            input_ids = input_ids[to_compute_mask].view(input_ids.shape[0], -1)
+
         # Add Basic MDM Model config check
         assert not self.config.alibi, "Alibi length extrapolation is not supported for MDM."
         assert self.config.rope, "Rope must be used in Llama-Encoder for MDM."
-        assert (past_key_values is None and not use_cache), "The kvcache is not suppotred for MDM."
+        # assert (past_key_values is None and not use_cache), "The kvcache is not suppotred for MDM."
 
         output_hidden_states = output_hidden_states if output_hidden_states is not None else False
 
@@ -1307,15 +1352,16 @@ class LLaDAModel(nn.Module):
                     )
                 ):
                     # shape: (batch_size, seq_len, d_model)
-                    x, cache = self._activation_checkpoint_fn(
-                        block, x, attention_bias=attention_bias, layer_past=layer_past, use_cache=use_cache
+                    x, _ = self._activation_checkpoint_fn(
+                        block, x, attention_bias=attention_bias, layer_past=layer_past, 
+                        to_compute_mask=to_compute_mask, use_cache=use_cache, cat=cat
                     )
                 else:
                     # shape: (batch_size, seq_len, d_model)
-                    x, cache = block(x, attention_bias=attention_bias, layer_past=layer_past, use_cache=use_cache)
-                if attn_key_values is not None:
-                    assert cache is not None
-                    attn_key_values.append(cache)
+                    LLaDALlamaBlock.forward
+                    x, _ = block(x, attention_bias=attention_bias, layer_past=layer_past, 
+                        to_compute_mask=to_compute_mask, use_cache=use_cache, cat=cat
+                    )
         else:
             for group_idx, block_group in enumerate(self.transformer.block_groups):
                 if output_hidden_states:
@@ -1329,12 +1375,13 @@ class LLaDAModel(nn.Module):
                         group_idx * self.config.block_group_size : (group_idx + 1) * self.config.block_group_size
                     ]
                 )
-                x, cache = block_group(
-                    x, attention_bias=attention_bias, layers_past=layers_past, use_cache=use_cache
+                x, _ = block_group(
+                    x, attention_bias=attention_bias, layers_past=layers_past, 
+                    to_compute_mask=to_compute_mask, use_cache=use_cache, cat=cat
                 )
-                if attn_key_values is not None:
-                    assert cache is not None
-                    attn_key_values.extend(cache)
+                # if attn_key_values is not None:
+                #     assert cache is not None
+                #     attn_key_values.extend(cache)
 
         if last_logits_only:
             # shape: (batch_size, 1, d_model)
@@ -1356,7 +1403,27 @@ class LLaDAModel(nn.Module):
         if self.config.scale_logits:
             logits.mul_(1 / math.sqrt(self.config.d_model))
 
+        if use_cache:
+            if cat not in self.logit_cache:
+                self.logit_cache[cat] = torch.zeros_like(logits)
+            if to_compute_mask is not None:
+                self.logit_cache[cat][to_compute_mask] = logits.view(-1, logits.shape[-1])
+                logits = self.logit_cache[cat]
+            else:
+                self.logit_cache[cat] = logits
+
         return LLaDAOutput(logits=logits, attn_key_values=attn_key_values, hidden_states=tuple(all_hidden_states) if output_hidden_states else None)  # type: ignore[arg-type]
+    
+    def caching(self, enable: bool = True):
+        LLaDABlock.caching
+        for block in self.transformer.blocks:
+            block.caching(enable)
+        self.logit_cache = {}
+
+    def empty_cache(self):
+        for block in self.transformer.blocks:
+            block.init_cache()
+        self.logit_cache = {}
 
 
 def create_model_config_from_pretrained_config(config: LLaDAConfig):
@@ -1400,15 +1467,14 @@ class LLaDAModelLM(PreTrainedModel):
         attention_bias: Optional[torch.Tensor] = None,
         past_key_values: Optional[List[torch.FloatTensor]] = None,
         labels: Optional[torch.LongTensor] = None,
-        use_cache: Optional[bool] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
         cache_position: Optional[Cache] = None,  # This is a hack mitigation of an issue in transformers `4.39.x`
+        use_cache = False,
+        to_compute_mask = None,
+        cat = '',
     ) -> Union[Tuple, CausalLMOutputWithPast]:
-        if use_cache is None:
-            use_cache = self.config.use_cache
-
         if output_attentions:
             raise ValueError("output_attentions is not yet supported in LLaDA")
 
@@ -1421,8 +1487,10 @@ class LLaDAModelLM(PreTrainedModel):
             attention_mask=attention_mask,
             attention_bias=attention_bias,
             past_key_values=past_key_values,
-            use_cache=use_cache,
             output_hidden_states=output_hidden_states,
+            use_cache=use_cache,
+            to_compute_mask=to_compute_mask,
+            cat=cat,
         )
 
         logits = outputs.logits
@@ -1488,6 +1556,12 @@ class LLaDAModelLM(PreTrainedModel):
     def tie_weights(self):
         if self.config.weight_tying:
             self.model.transformer.ff_out = self.model.transformer.wte
+
+    def caching(self, enable: bool = True):
+        self.model.caching(enable)
+
+    def empty_cache(self):
+        self.model.empty_cache()
 
 # Register the model so that it is available for transformer pipelines, auto-loading, etc.
 AutoModel.register(LLaDAConfig, LLaDAModelLM)

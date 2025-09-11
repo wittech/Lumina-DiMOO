@@ -56,6 +56,10 @@ def main():
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size")
     parser.add_argument("--output_dir", type=str, default="results_text_to_image_ddp", help="Output directory")
     parser.add_argument("--output_json", type=str, default="results_text_to_image_ddp/results.json", help="Output JSON file")
+    parser.add_argument("--use-cache", action='store_true', help="Enable caching for faster inference")
+    parser.add_argument("--cache_ratio", type=float, default=0.9)
+    parser.add_argument("--warmup_ratio", type=float, default=0.3, help="Warmup ratio for caching")
+    parser.add_argument("--refresh_interval", type=int, default=5, help="Interval for refreshing cache")
     
     args = parser.parse_args()
     
@@ -171,7 +175,11 @@ def main():
             temperature=args.temperature,
             cfg_scale=args.cfg_scale,
             uncon_ids=uncon_ids,
-            code_start=code_start
+            code_start=code_start,
+            use_cache=args.use_cache,
+            cache_ratio=args.cache_ratio,
+            refresh_interval=args.refresh_interval,
+            warmup_ratio=args.warmup_ratio
         )
         
         # Generate filename

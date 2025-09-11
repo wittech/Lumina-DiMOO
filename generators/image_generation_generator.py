@@ -6,6 +6,7 @@ import torch
 import math
 from typing import Callable, Optional
 from utils.generation_utils import cosine_schedule, gumbel_max_sample, mask_by_random_topk
+from model import LLaDAForMultiModalGeneration
 
 
 @torch.no_grad()
@@ -26,6 +27,10 @@ def generate_image(
     noise_schedule: Callable[[torch.Tensor], torch.Tensor] = cosine_schedule,
     text_vocab_size: Optional[int] = None,
     generator: Optional[torch.Generator] = None,
+    use_cache=False,
+    cache_ratio=0.9,
+    refresh_interval=5,
+    warmup_ratio=0.3
 ) -> torch.LongTensor:
     """
     MaskGit parallel decoding to generate VQ tokens
@@ -61,6 +66,18 @@ def generate_image(
     unknown_cnt = vq_mask.sum(dim=1, keepdim=True)
     vq_len = unknown_cnt
 
+    if isinstance(model, LLaDAForMultiModalGeneration):
+        model.caching(use_cache)
+    else:  # DDP
+        model.module.caching(use_cache)
+
+    warmup_step = int(timesteps * warmup_ratio)
+    refresh_steps = torch.zeros(timesteps, dtype=torch.bool)
+    for step in range(timesteps):
+        if not use_cache or step <= warmup_step or (step-warmup_step) % refresh_interval == 0:
+            refresh_steps[step] = True
+    compute_ratio = 1 - cache_ratio
+
     # Infer text vocabulary size
     if text_vocab_size is None:
         vocab_total = model(torch.zeros(1, 1, dtype=torch.long, device=device), infer=True).logits.size(-1)
@@ -78,13 +95,27 @@ def generate_image(
         else:
             keep_n = torch.zeros_like(unknown_cnt)
 
+        if use_cache and step and refresh_steps[step]:
+            if isinstance(model, LLaDAForMultiModalGeneration):
+                model.empty_cache()
+            else:  # DDP
+                model.module.empty_cache()
+
         # Forward pass (with/without CFG)
         if cfg_scale > 0:
             uncond = torch.cat((uncon_ids.to(x.device), x[:, code_start-2:]), axis=1)
             uncond_vq_mask = torch.cat((torch.zeros((1, uncon_ids.size()[1]), dtype=torch.bool).to(x.device), vq_mask[:, code_start-2:]), axis=1)
-            cond_logits = model(x, infer=True).logits[:, vq_mask[0], vocab_offset : vocab_offset + codebook_size]
-            uncond_logits = model(uncond, infer=True).logits[:, uncond_vq_mask[0], vocab_offset : vocab_offset + codebook_size]
-            logits = (1 + cfg_scale) * cond_logits - cfg_scale * uncond_logits
+            cond_logits = model(x, infer=True,
+                    cat='cond', use_cache=use_cache, 
+                    to_compute_mask = cond_to_compute_mask if not refresh_steps[step] else None,
+                ).logits[..., vocab_offset : vocab_offset + codebook_size]
+            cond_mask_logits = cond_logits[vq_mask].view(B, -1, codebook_size)
+            uncond_logits = model(uncond, infer=True,
+                    cat='uncond', use_cache=use_cache, 
+                    to_compute_mask = uncond_to_compute_mask if not refresh_steps[step] else None
+                ).logits[..., vocab_offset : vocab_offset + codebook_size]
+            uncond_mask_logits = uncond_logits[uncond_vq_mask].view(B, -1, codebook_size)
+            logits = (1 + cfg_scale) * cond_mask_logits - cfg_scale * uncond_mask_logits
         else:
             logits = model(x, infer=True).logits[:, vq_mask[0], vocab_offset : vocab_offset + codebook_size]
 
@@ -103,6 +134,16 @@ def generate_image(
         x.view(-1)[flat_idx[mask_sel.view(-1)]] = mask_token_id
         vq_mask = x == mask_token_id
         unknown_cnt = vq_mask.sum(dim=1, keepdim=True)
+
+        if use_cache and step < timesteps - 1 and not refresh_steps[step+1]:
+            cond_conf = cond_logits.max(dim=-1)[0]
+            cond_conf_threshold = torch.quantile(cond_conf.to(torch.float), compute_ratio, dim=-1, keepdim=True)
+            cond_to_compute_mask = cond_conf <= cond_conf_threshold
+
+            uncond_conf = uncond_logits.max(dim=-1)[0]
+            uncond_conf_threshold = torch.quantile(uncond_conf.to(torch.float), compute_ratio, dim=-1, keepdim=True)
+            uncond_to_compute_mask = uncond_conf <= uncond_conf_threshold
+            
 
     # Remove newline tokens
     vq_ids = x[0, code_start:-2]

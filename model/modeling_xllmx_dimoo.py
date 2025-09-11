@@ -25,7 +25,7 @@ class LLaDAForMultiModalGeneration(LLaDAModelLM):
         print(f"Initializing MMadaModelLM with config: {config}")
         super().__init__(config, *args, **kwargs)
     
-    def forward(self, input_ids=None, labels=None, infer=False, **kwargs):
+    def forward(self, input_ids=None, labels=None, infer=False, use_cache=False, to_compute_mask=None, cat='', **kwargs):
         input_ids = input_ids.tolist()
         # ========================================================
         # padding input batch len & attention bias for attention mask
@@ -40,7 +40,8 @@ class LLaDAForMultiModalGeneration(LLaDAModelLM):
         # ========================================================
         # model output 
         # ========================================================
-        output = LLaDAModelLM.forward(self, input_ids=input_ids, attention_mask=attention_mask)
+        output = LLaDAModelLM.forward(self, input_ids=input_ids, attention_mask=attention_mask,
+                                      use_cache=use_cache, to_compute_mask=to_compute_mask, cat=cat)
         if infer:
             return output
     
