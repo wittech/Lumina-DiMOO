@@ -269,6 +269,10 @@ You can reach us with this WeChat QR code!
 ## 📜 Acknowledgements
 This work was also supported and implemented by [MindSpeed MM](https://gitee.com/ascend/MindSpeed-MM), an open-source training framework for large-scale multimodal models designed for distributed training, developed and maintained by Huawei's Computing Product Line. Specifically Optimized for Huawei‘s Ascend AI chips, MindSpeed MM offers comprehensive support for distributed training and is tailored for a wide range of multimodal tasks.
 
+## 🌟 Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Alpha-VLLM/DiMOO&type=Date)](https://www.star-history.com/#Alpha-VLLM/DiMOO&Date)
+
 ## 📖 BibTeX
 ```
 @misc{lumina-dimoo,
