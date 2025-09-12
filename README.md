@@ -30,7 +30,7 @@ We introduce Lumina-DiMOO, an omni foundational model for seamless multimodal ge
 
 
 ## 🔥 News
-- **[2025-09-10]** 🎉🎉🎉 We have open-sourced the Max Logit-based Cache solution, offering a 2x speed improvement for sampling.
+- **[2025-09-11]** 🎉🎉🎉 We have open-sourced the Max Logit-based Cache solution, offering a 2x speed improvement for sampling.
 
 - **[2025-09-10]** 🎉🎉🎉 We release the initial version of **Lumina-DiMOO**, including:
   - 🎯 Model Checkpoints on [HuggingFace](https://huggingface.co/Alpha-VLLM/Lumina-DiMOO)!
