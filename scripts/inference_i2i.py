@@ -22,7 +22,7 @@ from utils.prompt_utils import generate_image_to_image_prompt, create_prompt_tem
 
 def main():
     parser = argparse.ArgumentParser(description="Image-to-image inference")
-    parser.add_argument("--checkpoint", type=str, default='weights/dimoo', help="Fine-tuned checkpoint path")
+    parser.add_argument("--checkpoint", type=str, required=True, help="Fine-tuned checkpoint path")
     parser.add_argument("--prompt", type=str, required=True, help="Text prompt")
     parser.add_argument("--image_path", type=str, required=True, help="Input image path")
     parser.add_argument("--ref_image_path", type=str, default=None, help="Input image path for image-reference style transfer")
@@ -34,7 +34,7 @@ def main():
     parser.add_argument("--cfg_img", type=float, default=4.0, help="Image CFG scale")
     parser.add_argument("--temperature", type=float, default=1.0, help="Temperature")
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
-    parser.add_argument("--vae_ckpt", type=str, default="weights/dimoo", help="VAE checkpoint path")
+    parser.add_argument("--vae_ckpt", type=str, default="./vae_ckpt", help="VAE checkpoint path")
     parser.add_argument("--output_dir", type=str, default="results_image_to_image", help="Output directory")
     
     args = parser.parse_args()
