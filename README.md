@@ -30,6 +30,8 @@ We introduce Lumina-DiMOO, an omni foundational model for seamless multimodal ge
 
 
 ## 🔥 News
+- **[2025-09-12]** 🎉🎉🎉 We have open-sourced Image Inpainting & Extrapolation code.
+
 - **[2025-09-11]** 🎉🎉🎉 We have open-sourced the Max Logit-based Cache solution, offering a 2x speed improvement for sampling.
 
 - **[2025-09-10]** 🎉🎉🎉 We release the initial version of **Lumina-DiMOO**, including:
@@ -39,7 +41,7 @@ We introduce Lumina-DiMOO, an omni foundational model for seamless multimodal ge
   - 🎯 Website & Demo on [Project Page](https://synbol.github.io/Lumina-DiMOO/)!
 
 ## 📝 Open-Source Plan
- - [ ] Image Inpainting & Extrapolation Code
+ - [x] Image Inpainting & Extrapolation Code
  - [x] Fast Sampling with Max Logit-based Cache
  - [ ] Gradio Demo
  - [ ] Bechmark Evaluation Code
@@ -260,6 +262,41 @@ python scripts/inference_i2i.py \
     --vae_ckpt Alpha-VLLM/Lumina-DiMOO \
     --output_dir output/results_image_to_image
 ```
+
+### 🌟 Image Inpainting & Extrapolation
+
+#### 1. Image Inpainting
+```
+python scripts/inference_t2i.py\
+    --checkpoint Alpha-VLLM/Lumina-DiMOO \
+    --prompt "Porsche showroom. Make there be a Porsche logo on the back wall behind the car." \
+    --painting_mode inpainting \
+    --painting_image examples/example_8.png \
+    --mask_h_ratio 0.5 \
+    --mask_w_ratio 0.5 \
+    --timesteps 64 \
+    --cfg_scale 4.0 \
+    --seed 65513 \
+    --vae_ckpt Alpha-VLLM/Lumina-DiMOO \
+    --output_dir output/results_text_to_image
+```
+
+#### 2. Image Extrapolation
+```
+python scripts/inference_t2i.py\
+    --checkpoint Alpha-VLLM/Lumina-DiMOO \
+    --prompt "A photograph showcasing a pale gold moon, partially veiled by wispy cirrus clouds, dominating a dramatic twilight sky. The moon's soft glow reflects on the tranquil surface of a lake below, creating a shimmering mirror effect, while a small wooden rowboat gently bobs on the water's edge. Dark silhouettes of tall, ancient pine trees encircle the lake, their branches reaching towards the sky like skeletal fingers, as a gentle mist hangs low, diffusing the moonlight and adding a sense of serene mystery. The scene is bathed in soft, cool lighting, creating an ethereal and captivating atmosphere." \
+    --painting_mode outpainting \
+    --painting_image examples/example_7.png \
+    --mask_h_ratio 1 \
+    --mask_w_ratio 0.2 \
+    --timesteps 64 \
+    --cfg_scale 4.0 \
+    --seed 65513 \
+    --vae_ckpt Alpha-VLLM/Lumina-DiMOO \
+    --output_dir output/results_text_to_image
+```
+
 
 ### 🌟 Image Understanding Inference
 ```

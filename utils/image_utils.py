@@ -5,9 +5,10 @@ Image processing utilities
 import torch
 import PIL
 import random
-from PIL import Image
+from PIL import Image, ImageDraw
 from diffusers import VQModel
 from diffusers.image_processor import VaeImageProcessor
+import torch.nn.functional as F
 
 def decode_vq_to_image(
     vq_codes: torch.LongTensor, 
@@ -58,8 +59,6 @@ def decode_vq_to_image(
     ).sample.clip(0, 1)
 
     img = img_proc.postprocess(recon.detach(), output_type="pil")[0]
-    img.save(save_path)
-    print(f"[✓] Saved {save_path}")
     return img
 
 
@@ -159,3 +158,115 @@ def encode_img_with_breaks(img, vqvae, vae_scale_factor: int = 16):
     img_token = add_break_line(quantized, lat_h, lat_w, new_number=126084)
     img_token = [126349] + img_token + [126350]
     return img_token
+
+@torch.no_grad()
+def encode_img_with_paint(
+    img: Image.Image,
+    vqvae: VQModel,
+    *,
+    mask_h_ratio: float = 1,   # Height ratio
+    mask_w_ratio: float = 0.2,    # Width ratio
+    gray_value: int = 127,        # Visualization gray value
+    downsample_mode: str = "area",# Pixel mask alignment to latent grid
+    dilate_latent_k: int = 0,     # Optional dilation on latent grid (grid count)
+    mask_mode: str = "inpainting",   # "inpainting" | "outpainting"
+):
+    """
+    Encode image with mask for inpainting/outpainting tasks
+    
+    Args:
+        img: Input PIL image
+        vqvae: VQ-VAE model for encoding
+        mask_h_ratio: Height ratio for mask region (default: 1.0)
+        mask_w_ratio: Width ratio for mask region (default: 0.2)
+        gray_value: Gray value for mask visualization (default: 127)
+        downsample_mode: Downsampling mode for mask alignment ("area", "nearest", "bilinear")
+        dilate_latent_k: Dilation kernel size for latent grid (default: 0)
+        mask_mode: Mask mode - "inpainting" (mask inside) or "outpainting" (mask outside)
+    
+    Returns:
+        img_token: List[int] - Token sequence with newlines (126084) inserted at row ends;
+                              masked positions = 126336, others = index + 126356
+        vis_img: PIL.Image - Gray mask visualization image (consistent with mask_mode)
+    
+    Note:
+        * Encoding uses original image strictly; mask only maps to latent grid to determine
+          which tokens are set to MASK_TOKEN_ID.
+        * mask_mode="inpainting": mask inside rectangle; "outpainting": mask outside rectangle (inverse).
+    """
+    MASK_TOKEN_ID = 126336      # mask token
+    NEWLINE_TOKEN_ID = 126084   # newline token
+    VQ_OFFSET = 126356          # quantization index offset
+
+    assert mask_mode in ("inpainting", "outpainting"), "mask_mode must be 'inpainting' or 'outpainting'"
+
+    # --- 1) Calculate center rectangle and generate visualization ---
+    img = img.convert("RGB")
+    W, H = img.size
+    mh = int(round(H * mask_h_ratio))
+    mw = int(round(W * mask_w_ratio))
+    top = (H - mh) // 2
+    left = (W - mw) // 2
+    bottom = top + mh
+    right = left + mw
+
+    if mask_mode == "inpainting":
+        vis_img = img.copy()
+        draw = ImageDraw.Draw(vis_img)
+        draw.rectangle([left, top, right, bottom], fill=(gray_value, gray_value, gray_value))
+    elif mask_mode == "outpainting":  # outpainting
+        bg = Image.new("RGB", (W, H), (gray_value, gray_value, gray_value))
+        crop = img.crop((left, top, right, bottom))
+        bg.paste(crop, (left, top))
+        vis_img = bg
+
+    # --- 2) VQ encoding using original image ---
+    vae_scale_factor = 2 ** (len(vqvae.config.block_out_channels) - 1)
+    image_processor = VaeImageProcessor(vae_scale_factor=vae_scale_factor, do_normalize=False)
+    x = image_processor.preprocess(img).to(vqvae.device)  # 1 x 3 x H' x W'
+    latents = vqvae.encode(x).latents                     # 1 x C x h x w
+    _, _, lat_h, lat_w = latents.shape
+
+    # Quantization indices
+    quant_pack = vqvae.quantize(latents)
+    indices = quant_pack[2][2].view(1, lat_h, lat_w)      # 1 x h x w, long
+
+    # --- 3) Pixel mask -> latent grid mask (aligned with encoding input size) ---
+    Hp, Wp = x.shape[-2:]
+    mask_px = torch.zeros((1, 1, Hp, Wp), dtype=torch.float32, device=vqvae.device)
+    # First generate mask where "rectangle inside=1, outside=0"
+    top_p  = int(round(top  * Hp / H))
+    left_p = int(round(left * Wp / W))
+    bh_p   = int(round(mh   * Hp / H))
+    bw_p   = int(round(mw   * Wp / W))
+    mask_px[:, :, top_p:top_p+bh_p, left_p:left_p+bw_p] = 1.0
+
+    # If outpainting, need to invert (outside=1, inside=0 is the masked region)
+    if mask_mode == "outpainting":
+        mask_px = 1.0 - mask_px
+
+    if downsample_mode not in ("nearest", "area", "bilinear"):
+        downsample_mode = "area"
+    mask_lat = F.interpolate(mask_px, size=(lat_h, lat_w), mode=downsample_mode)
+    mask_lat = (mask_lat > 0.5) if downsample_mode == "area" else (mask_lat >= 0.5)
+    mask_lat = mask_lat[0, 0]        # h x w (bool)
+
+    # Optional: latent grid dilation (after inversion is applied)
+    if dilate_latent_k > 0:
+        m = mask_lat.float().unsqueeze(0).unsqueeze(0)
+        ker = 2 * dilate_latent_k + 1
+        m = F.max_pool2d(m, kernel_size=ker, stride=1, padding=dilate_latent_k)
+        mask_lat = (m[0, 0] > 0.5)
+
+    # --- 4) Generate tokens: masked positions=MASK_TOKEN_ID, others=indices+VQ_OFFSET ---
+    idx_flat = indices.view(-1)
+    mask_flat = mask_lat.view(-1)
+    tokens = torch.empty_like(idx_flat)
+    tokens[mask_flat] = MASK_TOKEN_ID
+    tokens[~mask_flat] = idx_flat[~mask_flat] + VQ_OFFSET
+    tokens_list = tokens.tolist()
+
+    # --- 5) Insert newlines (no longer wrapped in <boi>/<eoi>, consistent with current return) ---
+
+    img_token = add_break_line(tokens_list, lat_h, lat_w, NEWLINE_TOKEN_ID)
+    return img_token, vis_img
