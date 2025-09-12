@@ -52,7 +52,7 @@ Here we present some comparative generation results with other models. **For add
 <details open>
   <summary>Text-to-Image Comparison</summary>
   <img src="./assets/demo_t2i.png" width="100%"/>
-  <details open>
+<!--   <details open>
   <summary>Effects of Max Logit-Based Cache (A800 GPU, 1536x768 resolution)</summary>
   Without Cache: Latency: 58.2 s; Peak GPU Memory: 38.9 GiB
   <img src="./assets/nocache.png" width="80%"/>
@@ -60,7 +60,7 @@ Here we present some comparative generation results with other models. **For add
 
   With Cache: Latency: 32.2 s; Peak GPU Memory: 45.9 GiB
   <img src="./assets/cache.png" width="80%"/>
-</details>
+</details> -->
 </details>
 
 <details close>
@@ -162,7 +162,7 @@ torchrun --nproc_per_node=8 scripts/inference_t2i_ddp.py \
     --output_json output/results_image_to_image_ddp/results.json
 ```
 #### 3. Faster Sampling with Cache
-Add `--use-cache` to accelerate sampling through max logit-based cache. The efficiency-quality tradeoff can be tuned by `cache_ratio` (in `(0,1)`; the higher the faster), `warmup_ratio` (in `[0,1)`; the lower the faster), and `refresh_interval` (in `(1, timesteps-int(warmup_ratio*timesteps)-1]`; the higher the faster). 
+- Add `--use-cache` to accelerate sampling through max logit-based cache (ML-Cache). The efficiency-quality tradeoff can be tuned by `cache_ratio` (in `(0,1)`; the higher the faster), `warmup_ratio` (in `[0,1)`; the lower the faster), and `refresh_interval` (in `(1, timesteps-int(warmup_ratio*timesteps)-1]`; the higher the faster). 
 ```
 python scripts/inference_t2i.py\
     --checkpoint Alpha-VLLM/Lumina-DiMOO \
@@ -179,6 +179,13 @@ python scripts/inference_t2i.py\
     --warmup_ratio 0.3 \
     --refresh_interval 5
 ```
+
+- We provide the inference time and GPU memory on one A800 as a reference:
+
+| Method               | Inference Time | Inference GPU Memory |
+|----------------------|--------|----------|
+| Lumina-DiMOO      | 58.2s     | 38.9 GB  |
+| + ML-Cache        | 32.2s     | 45.9 GB  |
 
 ### 🌟 Image-to-Image Inference
  
