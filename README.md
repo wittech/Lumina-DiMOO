@@ -30,6 +30,7 @@ We introduce Lumina-DiMOO, an omni foundational model for seamless multimodal ge
 
 
 ## 🔥 News
+- **[2025-09-25]** 🎉🎉🎉 We have released the Technical Report.
 - **[2025-09-20]** 🎉🎉🎉 In the latest [UniGenBench Leaderboard](https://huggingface.co/spaces/CodeGoat24/UniGenBench_Leaderboard)(maintained by Tencent Hunyuan Team), Lumina-DiMOO's generation evaluation ranks 1st 🥇 among all open-source unified models. 
 - **[2025-09-12]** 🎉🎉🎉 We have open-sourced Image Inpainting & Extrapolation code.
 - **[2025-09-11]** 🎉🎉🎉 We have open-sourced the Max Logit-based Cache solution, offering a 2x speed improvement for sampling.
@@ -46,7 +47,7 @@ We introduce Lumina-DiMOO, an omni foundational model for seamless multimodal ge
  - [ ] Bechmark Evaluation Code
  - [ ] Fine-Tuning Code
  - [ ] Self-GRPO Training Code
- - [ ] Technical Report
+ - [x] Technical Report
 
 ## 📽️ Qualitative Results
 Here we present some comparative generation results with other models. **For additional visualization results, please see our [Project Page](https://synbol.github.io/Lumina-DiMOO/).**
