@@ -1,6 +1,6 @@
 # Step1 extract image from json file
 in_filename="/your/json/path"
-target_resolution=512 # for edit/mmu_single_image/mmu_multi_image, target resolution are setted in script
+target_resolution=512 # for edit/mmu_single_image/mmu_multi_image, target resolution is setted in script
 edit_type="t2i" # t2i, edit, mmu_single_image, mmu_multi_image
 base_name=${edit_type}_$(basename "$in_filename")
 main_name="${base_name%.*}"
