@@ -135,8 +135,9 @@ conda activate lumina_dimoo
 pip install -r requirements.txt
 ```
 
-### ⚡️ Supervised Fine-Tuning
+### 🧨 How to Fine-Tuning Lumina-DiMOO
 #### Step 1: Pre-extract discrete codes of training images.
+The final format after specific processing can refer to the sample json file ``assets/sample.json``.
 ```
 bash pre_tokenizer/run_pre_token.sh
 ```
@@ -145,7 +146,7 @@ bash pre_tokenizer/run_pre_token.sh
 bash train/train.sh
 ```
 
-### 🏃 Text-to-Image Generation Inference
+### 🚗 Text-to-Image Generation Inference
 #### 1. Normal Sampling
 ```
 python inference/inference_t2i.py\
@@ -273,7 +274,7 @@ python inference/inference_i2i.py \
     --output_dir output/results_image_to_image
 ```
 
-### 🚗 Image Inpainting & Extrapolation Inference
+### 🏃 Image Inpainting & Extrapolation Inference
 
 #### 1. Image Inpainting
 ```
@@ -308,7 +309,7 @@ python inference/inference_t2i.py\
 ```
 
 
-### 🧨 Image Understanding Inference
+### ⚡️ Image Understanding Inference
 ```
 python inference/inference_mmu.py \
     --checkpoint Alpha-VLLM/Lumina-DiMOO \
