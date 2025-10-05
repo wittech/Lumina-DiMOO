@@ -30,11 +30,12 @@ We introduce Lumina-DiMOO, an omni foundational model for seamless multimodal ge
 
 
 ## 🔥 News
-- **[2025-09-25]** 🎉🎉🎉 We have released the Technical Report.
-- **[2025-09-20]** 🎉🎉🎉 In the latest [UniGenBench Leaderboard](https://huggingface.co/spaces/CodeGoat24/UniGenBench_Leaderboard)(maintained by Tencent Hunyuan Team), Lumina-DiMOO's generation evaluation ranks 1st 🥇 among all open-source unified models. 
-- **[2025-09-12]** 🎉🎉🎉 We have open-sourced Image Inpainting & Extrapolation code.
-- **[2025-09-11]** 🎉🎉🎉 We have open-sourced the Max Logit-based Cache solution, offering a 2x speed improvement for sampling.
-- **[2025-09-10]** 🎉🎉🎉 We release the initial version of **Lumina-DiMOO**, including:
+- **[2025-10-06]** Training code is released.
+- **[2025-09-25]** We have released the Technical Report.
+- **[2025-09-20]** 🎉 In the latest [UniGenBench Leaderboard](https://huggingface.co/spaces/CodeGoat24/UniGenBench_Leaderboard)(maintained by Tencent Hunyuan Team), Lumina-DiMOO's generation evaluation ranks 1st 🥇 among all open-source unified models. 
+- **[2025-09-12]** We have open-sourced Image Inpainting & Extrapolation code.
+- **[2025-09-11]** We have open-sourced the Max Logit-based Cache solution, offering a 2x speed improvement for sampling.
+- **[2025-09-10]** 🎉 We release the initial version of **Lumina-DiMOO**, including:
   - 🎯 Model Checkpoints on [HuggingFace](https://huggingface.co/Alpha-VLLM/Lumina-DiMOO)!
   - 🎯 Text-to-Image & Image-to-Image Generation Inference code!
   - 🎯 Image Understanding Inference Code!
@@ -45,7 +46,7 @@ We introduce Lumina-DiMOO, an omni foundational model for seamless multimodal ge
  - [x] Fast Sampling with Max Logit-based Cache
  - [ ] Gradio Demo
  - [ ] Bechmark Evaluation Code
- - [ ] Fine-Tuning Code
+ - [x] Fine-Tuning Code
  - [ ] Self-GRPO Training Code
  - [x] Technical Report
 
@@ -137,7 +138,7 @@ pip install -r requirements.txt
 
 ### 🧨 How to Fine-Tuning Lumina-DiMOO
 #### Step 1: Pre-extract discrete codes of training images.
-The final format after specific processing can refer to the sample json file ``assets/sample.json``.
+The final format after specific processing can refer to the sample json file ``assets/mmu_sample.json`` and ``assets/t2i_sample.json``.
 ```
 bash pre_tokenizer/run_pre_token.sh
 ```
