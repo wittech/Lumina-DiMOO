@@ -135,7 +135,17 @@ conda activate lumina_dimoo
 pip install -r requirements.txt
 ```
 
-### ⛽ Text-to-Image Generation 
+### ⚡️ Supervised Fine-Tuning
+#### Step 1: Pre-extract discrete codes of training images.
+```
+bash pre_tokenizer/run_pre_token.sh
+```
+#### Step 2: Train Lumina-DiMOO model.
+```
+bash train/train.sh
+```
+
+### 🏃 Text-to-Image Generation Inference
 #### 1. Normal Sampling
 ```
 python inference/inference_t2i.py\
@@ -263,7 +273,7 @@ python inference/inference_i2i.py \
     --output_dir output/results_image_to_image
 ```
 
-### 🌟 Image Inpainting & Extrapolation
+### 🚗 Image Inpainting & Extrapolation Inference
 
 #### 1. Image Inpainting
 ```
@@ -298,7 +308,7 @@ python inference/inference_t2i.py\
 ```
 
 
-### 🌟 Image Understanding Inference
+### 🧨 Image Understanding Inference
 ```
 python inference/inference_mmu.py \
     --checkpoint Alpha-VLLM/Lumina-DiMOO \
