@@ -138,7 +138,7 @@ pip install -r requirements.txt
 ### ⛽ Text-to-Image Generation 
 #### 1. Normal Sampling
 ```
-python scripts/inference_t2i.py\
+python inference/inference_t2i.py\
     --checkpoint Alpha-VLLM/Lumina-DiMOO \
     --prompt "A striking photograph of a glass of orange juice on a wooden kitchen table, capturing a playful moment. The orange juice splashes out of the glass and forms the word \"Smile\" in a whimsical, swirling script just above the glass. The background is softly blurred, revealing a cozy, homely kitchen with warm lighting and a sense of comfort." \
     --height 768 \
@@ -152,7 +152,7 @@ python scripts/inference_t2i.py\
 #### 2. DDP Sampling
 To support large-scale sampling/testing, we provide additional ddp sampling scripts that support multi-GPU parallel sampling.
 ```
-torchrun --nproc_per_node=8 scripts/inference_t2i_ddp.py \
+torchrun --nproc_per_node=8 inference/inference_t2i_ddp.py \
     --checkpoint Alpha-VLLM/Lumina-DiMOO \
     --prompt_path /path/to/prompts.jsonl \
     --height 1024 \
@@ -166,7 +166,7 @@ torchrun --nproc_per_node=8 scripts/inference_t2i_ddp.py \
 #### 3. Faster Sampling with Cache
 - Add `--use-cache` to accelerate sampling through max logit-based cache (ML-Cache). The efficiency-quality tradeoff can be tuned by `cache_ratio` (in `(0,1)`; the higher the faster), `warmup_ratio` (in `[0,1)`; the lower the faster), and `refresh_interval` (in `(1, timesteps-int(warmup_ratio*timesteps)-1]`; the higher the faster). 
 ```
-python scripts/inference_t2i.py\
+python inference/inference_t2i.py\
     --checkpoint Alpha-VLLM/Lumina-DiMOO \
     --prompt "A striking photograph of a glass of orange juice on a wooden kitchen table, capturing a playful moment. The orange juice splashes out of the glass and forms the word \"Smile\" in a whimsical, swirling script just above the glass. The background is softly blurred, revealing a cozy, homely kitchen with warm lighting and a sense of comfort." \
     --height 768 \
@@ -194,7 +194,7 @@ python scripts/inference_t2i.py\
 #### 1. Controllable Generation: "hed_control", "depth_control", "openpose_control", "subject_driven".
 
 ```
-python scripts/inference_i2i.py \
+python inference/inference_i2i.py \
     --checkpoint Alpha-VLLM/Lumina-DiMOO \
     --prompt "A functional wooden printer stand.Nestled next to a brick wall in a bustling city street, it stands firm as pedestrians hustle by, illuminated by the warm glow of vintage street lamps." \
     --image_path examples/example_2.jpg \
@@ -208,7 +208,7 @@ python scripts/inference_i2i.py \
 
 #### 2. Subject-Driven Generation.
 ```
-python scripts/inference_i2i.py \
+python inference/inference_i2i.py \
     --checkpoint Alpha-VLLM/Lumina-DiMOO \
     --prompt "A creamy, rich-flavored dark beverage.Captured in a bustling urban street at twilight, this item is placed on an outdoor café table, as city lights begin to twinkle and passersby create a lively atmosphere." \
     --image_path examples/example_3.jpg \
@@ -222,7 +222,7 @@ python scripts/inference_i2i.py \
 
 #### 3. Image Editing: "edit_add", "edit_remove", "edit_replace", "edit_background", "edit_text_transfer".
 ```
-python scripts/inference_i2i.py \
+python inference/inference_i2i.py \
     --checkpoint Alpha-VLLM/Lumina-DiMOO \
     --prompt "Add a beige shed with brown trim and double doors with a diamond pattern in the center-right, occupying more than a third of the image." \
     --image_path examples/example_4.png \
@@ -236,7 +236,7 @@ python scripts/inference_i2i.py \
 
 #### 4. Style Transfer (An Image as Style Reference)
 ```
-python scripts/inference_i2i.py \
+python inference/inference_i2i.py \
     --checkpoint Alpha-VLLM/Lumina-DiMOO \
     --prompt "Transform the current image into the style of the provided image." \
     --image_path examples/example_5.png \
@@ -251,7 +251,7 @@ python scripts/inference_i2i.py \
 
 #### 5. Dense Prediction: "canny_pred", "hed_pred", "depth_pred", "openpose_pred", "canny_control".
 ```
-python scripts/inference_i2i.py \
+python inference/inference_i2i.py \
     --checkpoint Alpha-VLLM/Lumina-DiMOO \
     --prompt "Generate a canny edge map accroding to the image." \
     --image_path examples/example_1.png \
@@ -267,7 +267,7 @@ python scripts/inference_i2i.py \
 
 #### 1. Image Inpainting
 ```
-python scripts/inference_t2i.py\
+python inference/inference_t2i.py\
     --checkpoint Alpha-VLLM/Lumina-DiMOO \
     --prompt "Porsche showroom. Make there be a Porsche logo on the back wall behind the car." \
     --painting_mode inpainting \
@@ -283,7 +283,7 @@ python scripts/inference_t2i.py\
 
 #### 2. Image Extrapolation
 ```
-python scripts/inference_t2i.py\
+python inference/inference_t2i.py\
     --checkpoint Alpha-VLLM/Lumina-DiMOO \
     --prompt "A photograph showcasing a pale gold moon, partially veiled by wispy cirrus clouds, dominating a dramatic twilight sky. The moon's soft glow reflects on the tranquil surface of a lake below, creating a shimmering mirror effect, while a small wooden rowboat gently bobs on the water's edge. Dark silhouettes of tall, ancient pine trees encircle the lake, their branches reaching towards the sky like skeletal fingers, as a gentle mist hangs low, diffusing the moonlight and adding a sense of serene mystery. The scene is bathed in soft, cool lighting, creating an ethereal and captivating atmosphere." \
     --painting_mode outpainting \
@@ -300,7 +300,7 @@ python scripts/inference_t2i.py\
 
 ### 🌟 Image Understanding Inference
 ```
-python scripts/inference_mmu.py \
+python inference/inference_mmu.py \
     --checkpoint Alpha-VLLM/Lumina-DiMOO \
     --prompt "Please describe this image." \
     --image_path examples/example_6.jpg \
