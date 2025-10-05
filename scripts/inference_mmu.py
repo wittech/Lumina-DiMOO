@@ -85,7 +85,7 @@ def main():
 
     # Build input image token
     img_token = add_break_line(input_img_token, token_grid_height, token_grid_width, new_number = NEW_LINE)
-    input_img_token = [BOI] + img_token + [EOI]
+    input_img_token = img_token
 
     # Build input sequence
     input_token = input_ids[:-1] + input_img_token + input_ids[-1:]
