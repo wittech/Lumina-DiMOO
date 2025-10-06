@@ -26,7 +26,8 @@ class LLaDAForMultiModalGeneration(LLaDAModelLM):
         super().__init__(config, *args, **kwargs)
     
     def forward(self, input_ids=None, labels=None, infer=False, use_cache=False, to_compute_mask=None, cat='', **kwargs):
-        input_ids = input_ids.tolist()
+        if infer:
+            input_ids = input_ids.tolist()
         # ========================================================
         # padding input batch len & attention bias for attention mask
         # ========================================================
@@ -36,14 +37,22 @@ class LLaDAForMultiModalGeneration(LLaDAModelLM):
         input_ids = torch.tensor(input_ids, dtype=torch.int64, device=self.device) 
         # attn mask
         attention_mask = create_attention_mask(original_lengths, max_tokens, self.device)
-
+        attention_bias = (attention_mask[:, :, None] & attention_mask[:, None, :]).bool().unsqueeze(1)
         # ========================================================
         # model output 
         # ========================================================
-        output = LLaDAModelLM.forward(self, input_ids=input_ids, attention_mask=attention_mask,
-                                      use_cache=use_cache, to_compute_mask=to_compute_mask, cat=cat)
+        output = LLaDAModelLM.forward(self, input_ids=input_ids, attention_bias=attention_bias, use_cache=use_cache, to_compute_mask=to_compute_mask, cat=cat)
         if infer:
             return output
+        
+        # ========================================================
+        # padding label batch len & loss
+        # ========================================================
+        labels = [label + [-100] * (max_tokens - len(label)) for label in labels] # padding -100 to right --> max length
+        labels = torch.tensor(labels, dtype=torch.int64, device=self.device)
+        logits = output.logits
+        loss = F.cross_entropy(logits.contiguous().view(-1, logits.shape[-1]), labels.contiguous().view(-1), ignore_index=-100,)
+        return loss
     
     def get_fsdp_wrap_module_list(self) -> List:
         modules = [*list(self.model.transformer.blocks), self.model.transformer.ff_out]
