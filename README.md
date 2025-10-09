@@ -5,7 +5,7 @@
 <div align="center">
  <h1> Lumina-DiMOO: An Omni Diffusion Large Language Model for Multi-Modal Generation and Understanding </h1>
 
-  [[📑 Technical Report ](https://github.com/Alpha-VLLM/Lumina-DiMOO/blob/main/Technical-Report.pdf)] &emsp; [[🌐 Project Page (Demo & Benchmark)](https://synbol.github.io/Lumina-DiMOO/)] &emsp; [[🤗 Model ](https://huggingface.co/Alpha-VLLM/Lumina-DiMOO)]
+  [[📑 Technical Report ](http://arxiv.org/abs/2510.06308)] &emsp; [[🌐 Project Page (Demo & Benchmark)](https://synbol.github.io/Lumina-DiMOO/)] &emsp; [[🤗 Model ](https://huggingface.co/Alpha-VLLM/Lumina-DiMOO)]
  
  <b>¹Shanghai AI Laboratory, ²Shanghai Innovation Institute, ³Shanghai Jiao Tong University, ⁴Nanjing University </b>
  
