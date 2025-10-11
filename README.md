@@ -340,11 +340,11 @@ This work was also supported and implemented by [MindSpeed MM](https://gitee.com
 
 ## 📖 BibTeX
 ```
-@misc{lumina-dimoo,
-      title={Lumina-DiMOO: A Unified Masked Diffusion Model for Multi-Modal Generation and Understanding},
-      author={Alpha VLLM Team},
-      year={2025},
-      url={https://github.com/Alpha-VLLM/Lumina-DiMOO},
+@article{xin2025lumina,
+  title={Lumina-DiMOO: An Omni Diffusion Large Language Model for Multi-Modal Generation and Understanding},
+  author={Xin, Yi and Qin, Qi and Luo, Siqi and Zhu, Kaiwen and Yan, Juncheng and Tai, Yan and Lei, Jiayi and Cao, Yuewen and Wang, Keqi and Wang, Yibin and others},
+  journal={arXiv preprint arXiv:2510.06308},
+  year={2025}
 }
 ```
 
