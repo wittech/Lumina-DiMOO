@@ -30,6 +30,7 @@ We introduce Lumina-DiMOO, an omni foundational model for seamless multimodal ge
 
 
 ## 🔥 News
+- **[2025-10-21]** 🎉🎉🎉 We’ve added support for [Diffusers](https://github.com/qianyu-dlut/diffusers/blob/main/examples/community/README.md#lumina-dimoo) and [ComfyUI](https://github.com/L-Hugh/ComfyUI-Lumina-DiMOO).
 - **[2025-10-06]** Training code is released.
 - **[2025-09-25]** We have released the Technical Report.
 - **[2025-09-20]** 🎉 In the latest [UniGenBench Leaderboard](https://huggingface.co/spaces/CodeGoat24/UniGenBench_Leaderboard)(maintained by Tencent Hunyuan Team), Lumina-DiMOO's generation evaluation ranks 1st 🥇 among all open-source unified models. 
