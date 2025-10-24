@@ -30,6 +30,7 @@ We introduce Lumina-DiMOO, an omni foundational model for seamless multimodal ge
 
 
 ## 🔥 News
+- **[2025-10-24]** 🎉 We have released a guide for those who want to build worlds with the mask paradigm, see more details at [ArXiv](https://arxiv.org/abs/2510.20668) and [Github](https://github.com/M-E-AGI-Lab/Awesome-World-Models).
 - **[2025-10-21]** 🎉🎉🎉 We’ve added support for [Diffusers](https://github.com/qianyu-dlut/diffusers/blob/main/Lumina_DiMOO_README.md) and [ComfyUI](https://github.com/L-Hugh/ComfyUI-Lumina-DiMOO).
 - **[2025-10-06]** Training code is released.
 - **[2025-09-25]** We have released the Technical Report.
